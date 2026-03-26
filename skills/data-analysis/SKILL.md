@@ -32,6 +32,9 @@ Analyze datasets and produce insight reports with structured findings, tables, a
 - `artifact_excel` → Save to the output directory with analyzed data, summary sheets, and formatted tables.
 - Write a Markdown report to the output directory with: data overview, key metrics, trend analysis, findings, and recommendations.
 - Include clear descriptions of charts and visualizations that should be created from the data.
+- Ensure these files exist in the output directory before finishing:
+  - `analysis-report.md` (Markdown report)
+  - `analysis-data.csv` (structured data export)
 
 ### Step 5 — Save Memory
 

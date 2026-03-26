@@ -31,6 +31,8 @@ Deep research on a given topic, synthesizing multiple sources into a structured,
 - Write a comprehensive Markdown report to the output directory.
 - `artifact_docx` → Formatted Word version of the report (if requested).
 - `artifact_excel` → Any tabular data collected during research.
+- Ensure these files exist in the output directory before finishing:
+  - `research-report.md` (Markdown report)
 
 ### Step 5 — Save Memory
 

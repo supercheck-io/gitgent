@@ -189,8 +189,8 @@ jobs:
           # Re-configure remote with token for push
           git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
 
-          git add artifacts/ memory/ 2>/dev/null || true
-          git add -u artifacts/ memory/ 2>/dev/null || true
+          git add artifacts/ memory/ docs/ 2>/dev/null || true
+          git add -u artifacts/ memory/ docs/ 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "No changes to commit."

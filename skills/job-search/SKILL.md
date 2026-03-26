@@ -9,14 +9,11 @@ Search for job listings on the web, extract structured details, and generate a c
 
 ## Workflow
 
-### Step 0 — Validate Inputs
+### Step 1 — Parse Inputs and Search
 
 - Read Job Title, Location, Experience Level, Keywords, and Resume/Context from the issue body.
 - If Job Title is missing, infer it from Keywords and Resume/Context (for example: SRE, DevOps Engineer, Test Automation Engineer).
 - If multiple fields are missing, choose reasonable defaults and continue (do not ask follow-up questions).
-
-### Step 1 — Search
-
 - Use `web_search` with queries combining: job title, location, keywords, experience level.
 - Search across multiple sources: LinkedIn, Indeed, Glassdoor, company career pages, niche job boards.
 - Run 3-5 varied search queries to maximize coverage.
@@ -37,9 +34,9 @@ Search for job listings on the web, extract structured details, and generate a c
 
 - `artifact_excel` → Structured spreadsheet with all listings, sortable by match score.
 - Write a Markdown summary to the output directory with top 10 picks and why they're recommended.
-- Ensure these files exist in the issue artifact folder before finishing:
-- `jobs-report.md` (Markdown summary)
-- `jobs-table.csv` (structured listing table)
+- Ensure these files exist in the output directory before finishing:
+  - `jobs-report.md` (Markdown summary)
+  - `jobs-table.csv` (structured listing table)
 
 ### Step 5 — Save Memory
 

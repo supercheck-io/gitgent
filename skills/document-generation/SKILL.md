@@ -38,6 +38,8 @@ Structure content following professional standards for the document type:
 - Write Markdown version to the output directory for easy review.
 - `artifact_pptx` → Companion presentation if requested or appropriate.
 - `artifact_excel` → Supporting data tables if the document includes quantitative analysis.
+- Ensure these files exist in the output directory before finishing:
+  - `generated-document.md` (Markdown version)
 
 ### Step 5 — Save Memory
 

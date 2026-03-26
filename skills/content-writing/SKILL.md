@@ -38,6 +38,8 @@ Follow platform-specific best practices:
 - Write Markdown to the output directory as the primary deliverable.
 - `artifact_docx` → Formatted Word version for editing.
 - Include: headline/title, meta description (for SEO), word count, and the full content.
+- Ensure these files exist in the output directory before finishing:
+  - `content-draft.md` (Markdown content)
 
 ### Step 5 — Save Memory
 

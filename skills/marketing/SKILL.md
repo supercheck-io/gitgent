@@ -31,6 +31,9 @@ Analyze competitors, market positioning, and content strategy to produce actiona
 - `artifact_pptx` → Competitive landscape presentation with key slides.
 - `artifact_excel` → Structured comparison spreadsheet with all competitor data.
 - Write a detailed Markdown analysis report to the output directory.
+- Ensure these files exist in the output directory before finishing:
+  - `marketing-analysis.md` (Markdown report)
+  - `competitor-matrix.csv` (structured comparison data)
 
 ### Step 5 — Save Memory
 

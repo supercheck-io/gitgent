@@ -348,8 +348,8 @@ const SKILL_DELIVERABLES: Record<string, string[]> = {
   "data-analysis": ["analysis-report.md", "analysis-data.csv"],
   "document-generation": ["generated-document.md"],
   "content-writing": ["content-draft.md"],
-  "code-review": ["code-review-report.md"],
-  "devops": ["devops-plan.md"],
+  "news-briefing": ["news-briefing.md", "news-tracker.csv"],
+  "website-builder": ["website-report.md"],
   "job-search": ["jobs-report.md", "jobs-table.csv"],
 };
 
@@ -614,9 +614,11 @@ async function main() {
   enhancedPrompt += `- If no data files are attached, use \`web_search\` and \`web_fetch\` to find the required information online.\n`;
   enhancedPrompt += `- Use \`bash\` (e.g., curl, python) as an alternative when needed.\n`;
   enhancedPrompt += `- You MUST create artifact files before finishing.\n`;
-  enhancedPrompt += `- Before finishing, verify at least one non-empty file exists in \`artifacts/issue-${issueNumber}/\`.\n`;
   enhancedPrompt += `- Do NOT ask follow-up questions — infer reasonable defaults and proceed.\n`;
-  enhancedPrompt += `- After completing the task, write a brief daily log using \`memory_write\` with type "daily" summarizing what you did.\n`;
+  enhancedPrompt += `\n**Before finishing checklist** (complete ALL before ending your session):\n`;
+  enhancedPrompt += `1. Verify at least one non-empty file exists in \`artifacts/issue-${issueNumber}/\`.\n`;
+  enhancedPrompt += `2. Write a run summary using \`memory_write\` with type "summary"${skill ? ` and skill "${skill}"` : ""} containing: key findings, decisions made, and outputs produced.\n`;
+  enhancedPrompt += `3. Write a brief daily log using \`memory_write\` with type "daily" summarizing what you did.\n`;
 
   if (attachments.length > 0) {
     const fileList = attachments.map((f) => `- ${f}`).join("\n");

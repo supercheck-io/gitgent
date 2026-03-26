@@ -1,0 +1,7 @@
+# Binary artifacts — mark as binary so git doesn't try to diff/merge them
+artifacts/**/*.xlsx binary
+artifacts/**/*.pptx binary
+artifacts/**/*.docx binary
+artifacts/**/*.png  binary
+artifacts/**/*.jpg  binary
+artifacts/**/*.pdf  binary

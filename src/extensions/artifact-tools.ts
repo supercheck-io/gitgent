@@ -2,14 +2,28 @@
  * Artifact generation tools — Excel, PowerPoint, Word.
  */
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, statSync, unlinkSync } from "node:fs";
 import { dirname } from "node:path";
 import { Type, type Static } from "@sinclair/typebox";
 import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
 import { displayWorkspacePath, resolveWorkspacePath } from "./safety.js";
 
+/** Maximum artifact file size (25 MB). */
+const MAX_ARTIFACT_BYTES = 25 * 1024 * 1024;
+
 function ensureDir(filePath: string): void {
   mkdirSync(dirname(filePath), { recursive: true });
+}
+
+/** Check that a written artifact stays within the size cap. */
+function assertArtifactSize(filePath: string): void {
+  const size = statSync(filePath).size;
+  if (size > MAX_ARTIFACT_BYTES) {
+    unlinkSync(filePath);
+    throw new Error(
+      `Artifact exceeds ${MAX_ARTIFACT_BYTES / (1024 * 1024)} MB limit (${(size / (1024 * 1024)).toFixed(1)} MB): ${filePath}`,
+    );
+  }
 }
 
 const ExcelParams = Type.Object({
@@ -89,6 +103,7 @@ export const artifactExcelTool: ToolDefinition<typeof ExcelParams> = {
 
       ensureDir(outputPath);
       await workbook.xlsx.writeFile(outputPath);
+      assertArtifactSize(outputPath);
 
       return {
         content: [
@@ -147,6 +162,7 @@ export const artifactPptxTool: ToolDefinition<typeof PptxParams> = {
 
       ensureDir(outputPath);
       await pptx.writeFile({ fileName: outputPath });
+      assertArtifactSize(outputPath);
 
       return {
         content: [
@@ -208,6 +224,7 @@ export const artifactDocxTool: ToolDefinition<typeof DocxParams> = {
       ensureDir(outputPath);
       const buffer = await Packer.toBuffer(doc);
       writeFileSync(outputPath, buffer);
+      assertArtifactSize(outputPath);
 
       return {
         content: [
