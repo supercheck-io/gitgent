@@ -16,6 +16,7 @@
     <a href="#choose-your-ai-provider">Providers</a> · 
     <a href="#scheduling">Scheduling</a> · 
     <a href="#storage--artifacts">Storage</a> · 
+    <a href="#memory">Memory</a> · 
     <a href="#gitgent-vs-openclaw">Compare</a> · 
     <a href="#questions">Questions</a>
   </p>
@@ -76,85 +77,27 @@ sequenceDiagram
     actor User
     participant GH as GitHub Issues
     participant WF as GitHub Actions
-    participant RT as Agent Runtime
-    participant PI as PI SDK (LLM)
-    participant Tools as Tool Extensions
+    participant Agent as Agent + LLM
     participant FS as Repository
 
     User->>GH: Create issue with "gitgent" label
-    activate GH
-    GH->>WF: Trigger agent_issue.yml workflow
-    deactivate GH
-    activate WF
+    GH->>WF: Trigger workflow
+    WF->>GH: React 👀, add "in-progress" label
 
-    WF->>GH: Add 👀 reaction + "in-progress" label
-    WF->>GH: Post "Saddling Up" comment
-    WF->>WF: Checkout repo, install deps, Playwright
+    WF->>Agent: Launch agent with prompt + tools
+    activate Agent
 
-    Note over WF: Download issue attachments (if any)
-
-    WF->>RT: Launch github-entrypoint.ts
-    activate RT
-
-    RT->>RT: Load config (provider, model, API key)
-    RT->>RT: Validate execution target
-    RT->>RT: Resolve model (registry lookup or fallback)
-    RT->>GH: Post "In Progress" comment
-
-    RT->>RT: Extract prompt from issue title + body
-    RT->>RT: Detect skill label (e.g. skill:research)
-    RT->>RT: Build enhanced prompt with agent instructions
-
-    RT->>PI: Create agent session (model, tools, settings)
-    activate PI
-
-    loop Agent Execution Loop
-        PI->>PI: LLM reasons and decides next action
-        PI->>Tools: Execute tool call
-        activate Tools
-
-        alt Skill Instruction
-            Tools->>FS: Read skills/SKILL.md
-            FS-->>Tools: Return skill instructions
-        else Web Research
-            Tools->>Tools: web_search / web_fetch / browser
-        else File Operations
-            Tools->>FS: Write artifacts to artifacts/issue-N/
-        else Memory Operations
-            Tools->>FS: Write summary to memory/summaries/
-            Tools->>FS: Write daily log to memory/daily/
-        else Code Execution
-            Tools->>Tools: bash / read / edit / write
-        end
-
-        Tools-->>PI: Return tool result
-        deactivate Tools
-        PI->>PI: Process result, plan next step
+    loop Execution
+        Agent->>Agent: Search, browse, analyze
+        Agent->>FS: Write artifacts to artifacts/issue-N/
     end
 
-    PI-->>RT: Session complete
-    deactivate PI
+    Agent-->>WF: Done
+    deactivate Agent
 
-    RT->>RT: Count new/changed artifacts
-
-    alt No artifacts produced (artifact-required run)
-        RT->>PI: Recovery pass with focused prompt
-        activate PI
-        PI->>Tools: Retry artifact generation
-        Tools-->>PI: Return results
-        PI-->>RT: Recovery complete
-        deactivate PI
-    end
-
-    RT->>FS: Auto-write daily log entry (writeAutoDailyLog)
-    RT->>GH: Post completion comment with artifact links
-    RT->>GH: Add "completed" label, remove "in-progress"
-    RT->>GH: Close issue (or keep open for scheduled tasks)
-    deactivate RT
-
-    WF->>FS: git add artifacts/ memory/ docs/
-    WF->>FS: git commit + push to default branch
-    deactivate WF
+    WF->>GH: Post results + artifact links
+    WF->>GH: Label "completed", close issue
+    WF->>FS: git commit + push artifacts
 ```
 
 ### Key Behaviors
@@ -162,7 +105,7 @@ sequenceDiagram
 - **Isolated runs** — each issue gets its own `artifacts/issue-<number>/` directory; nothing leaks between tasks.
 - **Label tracking** — progress is tracked via labels: `in-progress` → `completed`, `needs-review`, or `failed`.
 - **Automatic recovery** — if an artifact-required run produces no files, a single recovery pass is attempted.
-- **Memory persistence** — daily logs and run summaries are committed back to the repo in `memory/`.
+- **Memory across runs** — the agent reads past summaries and daily logs before starting, so it can build on prior work and avoid repeating itself. After each run it writes new summaries back to `memory/`.
 - **Concurrency control** — runs are serialized per issue via GitHub Actions concurrency groups.
 
 ---
@@ -238,6 +181,25 @@ Every run produces files — research reports, spreadsheets, presentations, webs
 - **Size cap** — individual artifact files are limited to **25 MB**. Most generated reports are well under 1 MB.
 - **Repo growth** — artifacts accumulate over time. If your repo grows large, you can delete old `artifacts/issue-*/` directories and force-push, or use `git filter-repo` to clean history.
 - **GitHub Pages** — use the 🌐 Website Builder template to generate static sites. Each task gets its own URL under `docs/issue-<number>/`, with an auto-generated landing page at the root linking to all sub-sites.
+
+### Memory
+
+The agent maintains memory in `memory/` so it can learn from previous runs:
+
+| File | Purpose |
+|------|---------|
+| `soul.md` | Agent identity and behavioral guidelines — protected, cannot be deleted by the agent |
+| `preferences.yaml` | Your output and workflow preferences — customize to control default behavior |
+| `summaries/` | Timestamped run summaries — the agent reads these to build on past work |
+| `daily/` | Append-only daily logs — tracks every run for the day |
+
+At the start of each run, the agent reads `soul.md`, `preferences.yaml`, and searches past summaries for relevant context. After finishing, it writes a new summary and daily log entry. This means:
+
+- **Recurring tasks** (news briefings, scheduled market scans) automatically avoid repeating coverage from prior runs.
+- **Follow-up tasks** on the same topic can reference what was already found.
+- **Preferences** like default tone, output formats, and research depth are respected without repeating them in every issue.
+
+Edit `memory/preferences.yaml` to change defaults. Memory files are committed alongside artifacts and grow over time — the total directory is capped at 10 MB.
 
 ---
 

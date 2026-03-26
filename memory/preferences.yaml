@@ -1,14 +1,22 @@
 # Gitgent User Preferences
-# These preferences are read by agent skills to customize behavior.
-# LLM provider/model is controlled by env vars (GITGENT_PROVIDER, GITGENT_MODEL).
+# The agent reads this file at the start of every run.
+# Customize these to control default output behavior.
 
-# Git commit mode: pr | direct
-commit_mode: pr
-
-# Output preferences
+# Output preferences — the agent will prefer these formats when not specified in the issue
 output:
-  excel: true
   markdown: true
-  json: true
+  excel: true
+  csv: true
   powerpoint: false
   word: false
+  json: false
+
+# Research preferences
+research:
+  depth: moderate        # surface | moderate | deep
+  cite_sources: true     # always include source URLs
+
+# Content preferences
+content:
+  tone: professional     # professional | casual | technical
+  language: english

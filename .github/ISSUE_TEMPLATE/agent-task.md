@@ -28,6 +28,8 @@ Any
 
 ### Expected Files
 
+<!-- Optional — list specific files you want the agent to produce -->
+
 <!-- Optional — list specific filenames, e.g. summary.md, data.csv -->
 
 ### Attachments & References

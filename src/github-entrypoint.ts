@@ -606,11 +606,16 @@ async function main() {
   }
   enhancedPrompt += prompt;
   enhancedPrompt += `\n\n---\n\n## Agent Instructions\n\n`;
+  enhancedPrompt += `**Memory — load context before starting**:\n`;
+  enhancedPrompt += `- Read \`memory/soul.md\` for your identity and behavioral guidelines.\n`;
+  enhancedPrompt += `- Read \`memory/preferences.yaml\` for the user's output and workflow preferences.\n`;
+  enhancedPrompt += `- Use \`memory_search\` with keywords from the current task to find relevant past summaries — avoid repeating prior work and build on previous findings.\n`;
+  enhancedPrompt += `- Use \`memory_list\` on "summaries" to check for recent runs on the same skill.\n\n`;
   enhancedPrompt += `**Output directory**: Save ALL output files to \`artifacts/issue-${issueNumber}/\`. Do NOT save to the root \`artifacts/\` directory.\n\n`;
   enhancedPrompt += `**Execution rules**:\n`;
   enhancedPrompt += `- You are an automated, non-interactive GitHub Actions agent.\n`;
   enhancedPrompt += `- You MUST use tools to complete the task — do NOT just reply with text.\n`;
-  enhancedPrompt += `- Your FIRST action must be a tool call (for example: \`read\`, \`web_search\`, \`web_fetch\`, or \`bash\`).\n`;
+  enhancedPrompt += `- Your FIRST action must be a tool call (for example: \`memory_read\`, \`read\`, \`web_search\`, \`web_fetch\`, or \`bash\`).\n`;
   enhancedPrompt += `- If no data files are attached, use \`web_search\` and \`web_fetch\` to find the required information online.\n`;
   enhancedPrompt += `- Use \`bash\` (e.g., curl, python) as an alternative when needed.\n`;
   enhancedPrompt += `- You MUST create artifact files before finishing.\n`;

@@ -33,7 +33,7 @@ Monitor news on specified topics and produce a concise, well-sourced briefing re
 
 - Write a structured Markdown briefing to the output directory.
 - `artifact_excel` → Structured news tracker with all stories, sources, dates, and impact levels.
-- Ensure these files exist in the issue artifact folder before finishing:
+- Ensure these files exist in the output directory before finishing:
   - `news-briefing.md` (Markdown briefing report)
   - `news-tracker.csv` (structured story list)
 
