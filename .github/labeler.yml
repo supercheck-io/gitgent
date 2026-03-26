@@ -39,6 +39,7 @@
   - changed-files:
       - any-glob-to-any-file:
           - "README.md"
+          - "ADVANCED.md"
           - "CONTRIBUTING.md"
           - "AGENTS.md"
           - "docs/**"

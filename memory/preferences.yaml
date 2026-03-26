@@ -5,25 +5,6 @@
 # Git commit mode: pr | direct
 commit_mode: pr
 
-# Job search defaults
-job_search:
-  keywords:
-    - "AI engineer"
-    - "ML engineer"
-  locations:
-    - "Remote"
-    - "San Francisco"
-  experience: "senior"
-  sources:
-    - "indeed"
-
-# Marketing defaults
-marketing:
-  focus_areas:
-    - "features"
-    - "pricing"
-    - "messaging"
-
 # Output preferences
 output:
   excel: true

@@ -40,7 +40,7 @@ Set `GITGENT_PROVIDER` and add the matching API key as a **repository secret**:
 | OpenRouter | `openrouter` | `OPENROUTER_API_KEY` | `minimax/minimax-m2.7` |
 | OpenAI | `openai` | `OPENAI_API_KEY` | `gpt-4.1` |
 | Anthropic | `anthropic` | `ANTHROPIC_API_KEY` | `claude-sonnet-4-20250514` |
-| Google | `google` | `GEMINI_API_KEY` | `gemini-2.5-pro` |
+| Google | `google` | `GEMINI_API_KEY` | `gemini-2.5-flash` |
 | xAI | `xai` | `XAI_API_KEY` | `grok-3` |
 | Mistral | `mistral` | `MISTRAL_API_KEY` | `mistral-large-latest` |
 | Groq | `groq` | `GROQ_API_KEY` | `llama-3.3-70b-versatile` |
@@ -143,3 +143,42 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for pull request guidelines.
 - **Output isolation**: `memory/` and `artifacts/` directories only
 
 See [SECURITY.md](SECURITY.md) for vulnerability reporting and data exposure details.
+
+---
+
+## Syncing Updates from the Template
+
+When you create a repo with **Use this template**, it starts as an independent copy — there's no automatic link back to the original. To pull in new features, bug fixes, and workflow improvements:
+
+### One-time setup
+
+```bash
+cd your-gitgent-repo
+git remote add upstream https://github.com/supercheck-io/gitgent.git
+git fetch upstream
+```
+
+### Pulling updates
+
+```bash
+git fetch upstream
+git merge upstream/main --allow-unrelated-histories
+```
+
+Resolve any conflicts (typically in `memory/preferences.yaml` or `skills/` if you customized them), then push.
+
+### What merges cleanly
+
+| Content | Merge behavior |
+|---------|---------------|
+| `src/` (agent runtime, tools) | Merges cleanly unless you modified source |
+| `.github/workflows/` | Merges cleanly — picks up new workflow features |
+| `skills/` | Merges cleanly unless you edited built-in skills |
+| `memory/soul.md` | May conflict if you customized agent identity |
+| `artifacts/` | No conflicts — your artifacts are issue-scoped |
+
+### Tips
+
+- **Pull updates regularly** — smaller merges are easier to resolve.
+- **Keep customizations in `memory/preferences.yaml`** — this file is yours and rarely changes upstream.
+- **Don't modify `src/`** unless you're forking permanently — it makes future merges harder.
