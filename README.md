@@ -1,6 +1,5 @@
 <div align="center">
   <img src="logo.png" width="120" alt="Gitgent Logo" />
-
   <h1>Gitgent</h1>
   <p><strong>Your AI agent, right inside GitHub.</strong><br/>Create an issue. Get results. Artifacts committed automatically.</p>
 
@@ -72,6 +71,7 @@ Need to follow up? Comment `/gitgent <your request>` on any open issue.
 ### How It Works
 
 ```mermaid
+%%{init: {'themeVariables': {'actorBkg': '#2d333b', 'actorBorder': '#539bf5', 'actorTextColor': '#adbac7'}}}%%
 sequenceDiagram
     actor User
     participant GH as GitHub Issues
@@ -271,12 +271,12 @@ Both are open-source MIT-licensed AI tools — they solve different problems and
 | **What** | AI agent inside GitHub | Personal AI assistant gateway |
 | **Interface** | GitHub Issues — familiar to any developer | 23+ messaging channels (WhatsApp, Slack, Discord, etc.) |
 | **Mobile access** | GitHub mobile app — create tasks, view results, follow up from your phone | Via the messaging channel's app (WhatsApp, Telegram, etc.) |
+| **Notifications** | GitHub email + mobile push — automatic on every agent comment and issue close, no setup | Messaging channel's native notifications (push alerts in WhatsApp, Telegram, etc.) |
 | **Setup** | Click "Use this template" → add one API key | Install CLI, configure gateway, self-host |
 | **Runs on** | GitHub Actions — no server to manage | Your machine or VPS |
 | **Infra cost** | None — uses GitHub's free tier | You provision and maintain the host |
 | **Security model** | Runs in ephemeral GitHub-hosted runners | Runs on your own infrastructure |
 | **AI providers** | 7+ via PI SDK | 30+ providers |
-| **File output** | Excel, Word, PowerPoint, CSV, HTML, Markdown | Text replies (no native document generation) |
 | **Web research** | Search + Playwright browser | Search + Playwright browser |
 | **Voice / media** | — | Wake word, talk mode, media understanding |
 | **Scheduling** | Label-driven (hourly / daily / weekly / custom cron) | Cron-based |
