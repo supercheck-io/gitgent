@@ -1,0 +1,161 @@
+name: Gitgent Scheduler
+
+on:
+  schedule:
+    # Runs every hour at minute 0 — minimum scheduling granularity
+    - cron: "0 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run — list scheduled issues without running them"
+        type: boolean
+        default: false
+
+jobs:
+  check-scheduled:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Check agent is enabled
+        env:
+          HAS_OPENROUTER: ${{ secrets.OPENROUTER_API_KEY != '' }}
+          HAS_OPENAI: ${{ secrets.OPENAI_API_KEY != '' }}
+          HAS_ANTHROPIC: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+          HAS_GEMINI: ${{ secrets.GEMINI_API_KEY != '' }}
+          HAS_GROQ: ${{ secrets.GROQ_API_KEY != '' }}
+          HAS_XAI: ${{ secrets.XAI_API_KEY != '' }}
+          HAS_MISTRAL: ${{ secrets.MISTRAL_API_KEY != '' }}
+        run: |
+          if [ "$HAS_OPENROUTER" = "true" ] || [ "$HAS_OPENAI" = "true" ] || \
+             [ "$HAS_ANTHROPIC" = "true" ] || [ "$HAS_GEMINI" = "true" ] || \
+             [ "$HAS_GROQ" = "true" ] || [ "$HAS_XAI" = "true" ] || \
+             [ "$HAS_MISTRAL" = "true" ]; then
+            echo "✅ LLM API key detected."
+          else
+            echo "⏭️ Scheduler disabled — no LLM API key secret configured."
+            exit 0
+          fi
+
+      - name: Find and dispatch scheduled issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO="${{ github.repository }}"
+          HOUR=$(date -u +%H)
+          DAY_OF_WEEK=$(date -u +%u)  # 1=Monday, 7=Sunday
+
+          echo "⏰ Scheduler running at $(date -u)"
+          echo "   Hour (UTC): $HOUR"
+          echo "   Day of week: $DAY_OF_WEEK"
+
+          # Find open issues with schedule labels
+          ISSUES=$(gh issue list -R "$REPO" --state open --json number,title,labels --limit 100 2>/dev/null || echo "[]")
+
+          echo "$ISSUES" | jq -c '.[]' | while read -r issue; do
+            NUMBER=$(echo "$issue" | jq -r '.number')
+            TITLE=$(echo "$issue" | jq -r '.title')
+            LABELS=$(echo "$issue" | jq -r '[.labels[].name] | join(",")')
+
+            # Skip issues without gitgent label
+            if ! echo "$LABELS" | grep -q "gitgent"; then
+              continue
+            fi
+
+            SHOULD_RUN=false
+            SCHEDULE_TYPE=""
+
+            # Check schedule labels
+            if echo "$LABELS" | grep -q "schedule:hourly"; then
+              SHOULD_RUN=true
+              SCHEDULE_TYPE="hourly"
+            elif echo "$LABELS" | grep -q "schedule:daily"; then
+              # Daily = run at 9 AM UTC
+              if [ "$HOUR" = "09" ]; then
+                SHOULD_RUN=true
+                SCHEDULE_TYPE="daily (9 AM UTC)"
+              fi
+            elif echo "$LABELS" | grep -q "schedule:weekly"; then
+              # Weekly = Monday at 9 AM UTC
+              if [ "$DAY_OF_WEEK" = "1" ] && [ "$HOUR" = "09" ]; then
+                SHOULD_RUN=true
+                SCHEDULE_TYPE="weekly (Monday 9 AM UTC)"
+              fi
+            elif echo "$LABELS" | grep -q "schedule:custom"; then
+              # Custom cron — extract from issue body
+              BODY=$(gh issue view "$NUMBER" -R "$REPO" --json body -q '.body' 2>/dev/null)
+              # Look for cron expression in format: cron: <expression>
+              CRON_EXPR=$(echo "$BODY" | grep -oP 'cron:\s*\K[0-9*/,\- ]+' | head -1 | xargs)
+
+              if [ -n "$CRON_EXPR" ]; then
+                # Parse the 5-field cron: minute hour day month weekday
+                CRON_HOUR=$(echo "$CRON_EXPR" | awk '{print $2}')
+                CRON_DOM=$(echo "$CRON_EXPR" | awk '{print $3}')
+                CRON_MON=$(echo "$CRON_EXPR" | awk '{print $4}')
+                CRON_DOW=$(echo "$CRON_EXPR" | awk '{print $5}')
+
+                CURRENT_DOM=$(date -u +%d | sed 's/^0//')
+                CURRENT_MON=$(date -u +%m | sed 's/^0//')
+                CLEAN_HOUR=$(echo "$HOUR" | sed 's/^0//')
+                CLEAN_DOW="$DAY_OF_WEEK"
+
+                # cron_match FIELD CURRENT — supports *, exact, ranges (1-5), lists (1,3,5), and steps (*/2)
+                cron_match() {
+                  local field="$1" current="$2"
+                  [ "$field" = "*" ] && return 0
+                  # Handle */N step values
+                  if echo "$field" | grep -qE '^\*/[0-9]+$'; then
+                    local step=${field#*/}
+                    [ $((current % step)) -eq 0 ] && return 0
+                    return 1
+                  fi
+                  # Split on comma for lists (e.g. 1,3,5)
+                  local IFS=','
+                  for part in $field; do
+                    # Range (e.g. 1-5)
+                    if echo "$part" | grep -qE '^[0-9]+-[0-9]+$'; then
+                      local lo=${part%-*} hi=${part#*-}
+                      [ "$current" -ge "$lo" ] && [ "$current" -le "$hi" ] && return 0
+                    else
+                      # Exact match
+                      [ "$part" = "$current" ] && return 0
+                    fi
+                  done
+                  return 1
+                }
+
+                ALL_MATCH=true
+                cron_match "$CRON_HOUR" "$CLEAN_HOUR" || ALL_MATCH=false
+                cron_match "$CRON_DOM" "$CURRENT_DOM" || ALL_MATCH=false
+                cron_match "$CRON_MON" "$CURRENT_MON" || ALL_MATCH=false
+                cron_match "$CRON_DOW" "$CLEAN_DOW" || ALL_MATCH=false
+
+                if [ "$ALL_MATCH" = "true" ]; then
+                  SHOULD_RUN=true
+                  SCHEDULE_TYPE="custom ($CRON_EXPR)"
+                fi
+              else
+                echo "   ⚠️ #$NUMBER: schedule:custom label but no 'cron: ...' found in body"
+              fi
+            fi
+
+            if [ "$SHOULD_RUN" = "true" ]; then
+              echo "🚀 #$NUMBER: $TITLE [$SCHEDULE_TYPE]"
+
+              if [ "${{ inputs.dry_run }}" = "true" ]; then
+                echo "   (dry run — skipping)"
+                continue
+              fi
+
+              # Trigger by posting a /gitgent comment on the issue
+              gh issue comment "$NUMBER" -R "$REPO" \
+                --body "/gitgent 🫏 [Scheduled run: $SCHEDULE_TYPE] Hee-haw! Time to hit the trail and re-run this task." \
+                2>/dev/null || echo "   ⚠️ Failed to trigger #$NUMBER"
+            fi
+          done
+
+          echo "✅ Scheduler complete."

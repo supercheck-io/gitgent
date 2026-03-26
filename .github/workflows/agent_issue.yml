@@ -1,0 +1,223 @@
+name: Gitgent Agent (Issue)
+
+on:
+  issues:
+    types: [opened]
+  issue_comment:
+    types: [created]
+
+# Prevent workflow injection from issue/comment bodies
+# See: https://securitylab.github.com/research/github-actions-untrusted-input/
+
+jobs:
+  agent-run:
+    if: |
+      (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'gitgent')) ||
+      (github.event_name == 'issue_comment' && contains(github.event.issue.labels.*.name, 'gitgent') && startsWith(github.event.comment.body, '/gitgent'))
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    concurrency:
+      group: gitgent-${{ github.event.issue.number }}
+      cancel-in-progress: false
+
+    steps:
+      # ── Guard: skip if no LLM API key is configured (e.g. org/fork repos) ──
+      - name: Check agent is enabled
+        env:
+          HAS_OPENROUTER: ${{ secrets.OPENROUTER_API_KEY != '' }}
+          HAS_OPENAI: ${{ secrets.OPENAI_API_KEY != '' }}
+          HAS_ANTHROPIC: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+          HAS_GEMINI: ${{ secrets.GEMINI_API_KEY != '' }}
+          HAS_GROQ: ${{ secrets.GROQ_API_KEY != '' }}
+          HAS_XAI: ${{ secrets.XAI_API_KEY != '' }}
+          HAS_MISTRAL: ${{ secrets.MISTRAL_API_KEY != '' }}
+        run: |
+          if [ "$HAS_OPENROUTER" = "true" ] || [ "$HAS_OPENAI" = "true" ] || \
+             [ "$HAS_ANTHROPIC" = "true" ] || [ "$HAS_GEMINI" = "true" ] || \
+             [ "$HAS_GROQ" = "true" ] || [ "$HAS_XAI" = "true" ] || \
+             [ "$HAS_MISTRAL" = "true" ]; then
+            echo "✅ LLM API key detected — agent runs are enabled."
+          else
+            echo "⏭️ Agent not enabled — no LLM API key secret configured."
+            echo "   Set OPENROUTER_API_KEY (or another provider key) in Settings → Secrets → Actions."
+            echo "SKIP_RUN=true" >> "$GITHUB_ENV"
+          fi
+
+      # ── Instant feedback (before npm install) ──────────────────────
+      - name: Acknowledge issue
+        if: env.SKIP_RUN != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO="${{ github.repository }}"
+          ISSUE="${{ github.event.issue.number }}"
+          RUN_URL="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
+
+          # 👀 reaction = "I see your issue" (appears instantly)
+          gh api "repos/$REPO/issues/$ISSUE/reactions" \
+            -f content="eyes" --silent 2>/dev/null || true
+
+          # Ensure issue is open while the run is in progress.
+          gh issue reopen "$ISSUE" -R "$REPO" 2>/dev/null || true
+
+          # Add in-progress label, remove completed/needs-review/failed from prior runs
+          gh issue edit "$ISSUE" -R "$REPO" --add-label "in-progress" 2>/dev/null || true
+          gh issue edit "$ISSUE" -R "$REPO" --remove-label "completed" 2>/dev/null || true
+          gh issue edit "$ISSUE" -R "$REPO" --remove-label "needs-review" 2>/dev/null || true
+          gh issue edit "$ISSUE" -R "$REPO" --remove-label "failed" 2>/dev/null || true
+
+          # Build comment body
+          {
+            echo '## 🫏 Gitgent — Saddling Up!'
+            echo ''
+            echo '⚙️ Fixing my saddle and packing the tools (Installing dependencies)...'
+            echo ''
+            echo '___'
+            echo "_[View workflow run]($RUN_URL)_"
+          } > /tmp/gitgent_comment.md
+
+          echo "📝 Posting setup phase comment"
+          gh issue comment "$ISSUE" -R "$REPO" --body-file /tmp/gitgent_comment.md 2>/dev/null || true
+
+      # ── Repository & dependencies ─────────────────────────────────
+      - name: Checkout repository
+        if: env.SKIP_RUN != 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: false
+
+      - name: Setup Node.js
+        if: env.SKIP_RUN != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        if: env.SKIP_RUN != 'true'
+        run: npm ci --ignore-scripts
+
+      - name: Run postinstall
+        if: env.SKIP_RUN != 'true'
+        run: npm rebuild
+
+      - name: Install Playwright browsers
+        if: env.SKIP_RUN != 'true'
+        run: npx playwright install chromium --with-deps
+
+      # ── Download attachments ──────────────────────────────────────
+      - name: Download issue attachments
+        if: env.SKIP_RUN != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p attachments
+          ISSUE_BODY=$(gh issue view ${{ github.event.issue.number }} --json body -q '.body' 2>/dev/null || echo "")
+          URLS=$(echo "$ISSUE_BODY" | grep -oE 'https://github\.com/user-attachments/(files|assets)/[^ )\]]+' || true)
+
+          if [ -z "$URLS" ]; then
+            echo "No attachments found."
+          else
+            echo "$URLS" | while read -r url; do
+              filename=$(basename "$url")
+              echo "📎 Downloading: $filename"
+              gh api "$url" > "attachments/$filename" 2>/dev/null || \
+                curl -sL -H "Authorization: token $GH_TOKEN" "$url" -o "attachments/$filename" 2>/dev/null || true
+              if [ -f "attachments/$filename" ] && [ -s "attachments/$filename" ]; then
+                echo "  ✅ $filename ($(wc -c < "attachments/$filename") bytes)"
+              else
+                rm -f "attachments/$filename"
+              fi
+            done
+          fi
+
+      # ── Snapshot existing artifacts (for diff later) ──────────────
+      - name: Snapshot artifact state
+        if: env.SKIP_RUN != 'true'
+        run: |
+          # Record existing artifacts before agent runs
+          find artifacts/ -type f 2>/dev/null | sort > /tmp/artifacts_before.txt || touch /tmp/artifacts_before.txt
+          echo "📦 Artifacts before: $(wc -l < /tmp/artifacts_before.txt | tr -d ' ') files"
+
+      # ── Run the agent ─────────────────────────────────────────────
+      - name: Run Gitgent Agent
+        if: env.SKIP_RUN != 'true'
+        run: npx tsx src/github-entrypoint.ts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITGENT_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GITGENT_PROVIDER: ${{ vars.GITGENT_PROVIDER }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GITGENT_MODEL: ${{ vars.GITGENT_MODEL }}
+          GITGENT_REPO_ROOT: ${{ github.workspace }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+
+      # ── Record new artifacts ──────────────────────────────────────
+      - name: Detect new artifacts
+        if: always() && env.SKIP_RUN != 'true'
+        run: |
+          find artifacts/ -type f 2>/dev/null | sort > /tmp/artifacts_after.txt || touch /tmp/artifacts_after.txt
+          # New artifacts = lines in after that aren't in before
+          comm -13 /tmp/artifacts_before.txt /tmp/artifacts_after.txt > /tmp/artifacts_new.txt || true
+          echo "📦 New artifacts: $(wc -l < /tmp/artifacts_new.txt | tr -d ' ') files"
+          cat /tmp/artifacts_new.txt
+          # Export for the entrypoint to use
+          echo "NEW_ARTIFACTS_FILE=/tmp/artifacts_new.txt" >> $GITHUB_ENV
+
+      # ── Commit changes ────────────────────────────────────────────
+      - name: Commit artifacts and memory
+        if: always() && env.SKIP_RUN != 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Re-configure remote with token for push
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
+
+          git add artifacts/ memory/ 2>/dev/null || true
+          git add -u artifacts/ memory/ 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore: gitgent artifacts from issue #${ISSUE_NUMBER}
+
+            Triggered by: ${EVENT_NAME}
+            Issue: #${ISSUE_NUMBER}
+            Run: ${RUN_URL}"
+
+            # Pull with rebase to handle concurrent pushes (e.g. from dev machine)
+            MAX_RETRIES=3
+            PUSHED=0
+            for i in $(seq 1 $MAX_RETRIES); do
+              if git pull --rebase origin "$DEFAULT_BRANCH" 2>/dev/null; then
+                if git push; then
+                  echo "✅ Committed and pushed."
+                  PUSHED=1
+                  break
+                fi
+              fi
+              echo "⚠️ Push attempt $i/$MAX_RETRIES failed. Retrying..."
+              sleep 2
+            done
+
+            if [ "$PUSHED" -ne 1 ]; then
+              echo "❌ Failed to push artifacts/memory after $MAX_RETRIES attempts."
+              exit 1
+            fi
+          fi

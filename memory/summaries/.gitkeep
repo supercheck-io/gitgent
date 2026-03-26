@@ -1,0 +1,3 @@
+# This directory stores timestamped run summaries.
+# Files are named: YYYY-MM-DD-HH-MM-SS-<skill>.md
+# Never edit these files manually — they are append-only.

@@ -1,0 +1,52 @@
+name: Setup Gitgent Labels
+
+# Creates required labels when the repo is first set up.
+# Runs once on first push, or manually via Actions tab.
+
+on:
+    workflow_dispatch:
+    push:
+        branches: [main]
+        paths:
+            - ".github/workflows/setup_labels.yml"
+
+jobs:
+    create-labels:
+        runs-on: ubuntu-latest
+        permissions:
+            issues: write
+        steps:
+            - name: Create Gitgent labels
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  REPO: ${{ github.repository }}
+              run: |
+                  create_label() {
+                    gh label create "$1" --description "$2" --color "$3" --repo "$REPO" 2>/dev/null || \
+                    echo "Label '$1' already exists"
+                  }
+
+                  create_label "gitgent"          "Trigger Gitgent agent"    "2E86C1"
+                  create_label "bug"              "Bug report (human-triaged)" "D73A4A"
+                  create_label "enhancement"      "Feature request (human-triaged)" "A2EEEF"
+                  create_label "question"         "Question about usage"     "D876E3"
+                  create_label "good first issue" "Good for newcomers"       "7057FF"
+                  create_label "help wanted"      "Extra attention is needed" "008672"
+                  create_label "skill:job-search"          "Job search skill"           "28B463"
+                  create_label "skill:marketing"           "Marketing analysis skill"   "E74C3C"
+                  create_label "skill:research"            "Research skill"             "8E44AD"
+                  create_label "skill:data-analysis"       "Data analysis skill"        "3498DB"
+                  create_label "skill:content-writing"     "Content writing skill"      "F39C12"
+                  create_label "skill:devops"              "DevOps skill"               "1ABC9C"
+                  create_label "skill:document-generation" "Document generation skill"  "9B59B6"
+                  create_label "skill:code-review"         "Code review skill"          "E67E22"
+                  create_label "schedule:hourly"           "Run every hour"             "5D6D7E"
+                  create_label "schedule:daily"            "Run every day at 9 AM UTC"  "5D6D7E"
+                  create_label "schedule:weekly"           "Run every Monday at 9 AM UTC" "5D6D7E"
+                  create_label "schedule:custom"           "Run on a custom cron"       "5D6D7E"
+                  create_label "in-progress"      "Agent is working"         "F39C12"
+                  create_label "completed"        "Agent completed"          "27AE60"
+                  create_label "needs-review"     "Agent needs human review" "9B59B6"
+                  create_label "failed"           "Agent failed"             "E74C3C"
+
+                  echo "✅ All labels created"

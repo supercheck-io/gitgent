@@ -1,0 +1,33 @@
+# Gitgent User Preferences
+# These preferences are read by agent skills to customize behavior.
+# LLM provider/model is controlled by env vars (GITGENT_PROVIDER, GITGENT_MODEL).
+
+# Git commit mode: pr | direct
+commit_mode: pr
+
+# Job search defaults
+job_search:
+  keywords:
+    - "AI engineer"
+    - "ML engineer"
+  locations:
+    - "Remote"
+    - "San Francisco"
+  experience: "senior"
+  sources:
+    - "indeed"
+
+# Marketing defaults
+marketing:
+  focus_areas:
+    - "features"
+    - "pricing"
+    - "messaging"
+
+# Output preferences
+output:
+  excel: true
+  markdown: true
+  json: true
+  powerpoint: false
+  word: false

@@ -1,0 +1,50 @@
+# Auto-label PRs based on changed files
+"core":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/config.ts"
+          - "src/agent-runtime.ts"
+          - "src/main.ts"
+          - "src/github-entrypoint.ts"
+          - "src/hooks.ts"
+
+"extensions":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/extensions/**"
+
+"skills":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "skills/**"
+
+"memory":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/extensions/memory-tools.ts"
+          - "memory/**"
+
+"security":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/extensions/safety.ts"
+          - "SECURITY.md"
+
+"workflows":
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/workflows/**"
+
+"documentation":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "README.md"
+          - "CONTRIBUTING.md"
+          - "AGENTS.md"
+          - "docs/**"
+
+"tests":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "tests/**"
+          - "vitest.config.ts"

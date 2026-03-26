@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "� Report a Bug"
+    url: "https://github.com/supercheck-io/gitgent/discussions/categories/bug-reports"
+    about: "Report a bug or unexpected behavior via GitHub Discussions"
+  - name: "💡 Request a Feature"
+    url: "https://github.com/supercheck-io/gitgent/discussions/categories/ideas"
+    about: "Suggest a new feature or improvement via GitHub Discussions"
+  - name: "📖 Usage Guide"
+    url: "https://github.com/supercheck-io/gitgent/blob/main/README.md#get-started"
+    about: "How to set up and use Gitgent — triggers, models, and configuration"
+  - name: "💬 Follow-up on an Existing Issue"
+    url: "https://github.com/supercheck-io/gitgent/issues"
+    about: "Comment /gitgent on any open issue to send the agent a follow-up task"
