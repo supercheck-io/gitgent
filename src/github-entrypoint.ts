@@ -389,6 +389,13 @@ function extractSkillFromLabels(labels: Array<{ name: string }>): string | null 
   if (!skillLabel) return null;
 
   const skill = skillLabel.name.replace("skill:", "");
+
+  // Validate skill name to prevent path traversal via crafted labels
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(skill)) {
+    console.warn(`⚠️ Invalid skill name "${skill}" — must be lowercase alphanumeric with hyphens.`);
+    return null;
+  }
+
   const repoRoot = process.env.GITGENT_REPO_ROOT || process.cwd();
   const skillPath = join(repoRoot, "skills", skill, "SKILL.md");
 

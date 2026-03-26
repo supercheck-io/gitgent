@@ -109,6 +109,7 @@ Set `GITGENT_PROVIDER` in **Settings → Variables → Actions** and add the API
 
 - **Bug reports & feature requests** → [GitHub Discussions](https://github.com/supercheck-io/gitgent/discussions)
 - **Developer docs** → [Advanced Guide](ADVANCED.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+- **Code of conduct** → [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 - **License** → [MIT](LICENSE) — free and open source, always.
 
 ---

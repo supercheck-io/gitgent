@@ -89,7 +89,7 @@ jobs:
               # Custom cron — extract from issue body
               BODY=$(gh issue view "$NUMBER" -R "$REPO" --json body -q '.body' 2>/dev/null)
               # Look for cron expression in format: cron: <expression>
-              CRON_EXPR=$(echo "$BODY" | grep -oP 'cron:\s*\K[0-9*/,\- ]+' | head -1 | xargs)
+              CRON_EXPR=$(echo "$BODY" | grep -oE 'cron: *[0-9*/,\- ]+' | head -1 | sed 's/^cron: *//' | xargs)
 
               if [ -n "$CRON_EXPR" ]; then
                 # Parse the 5-field cron: minute hour day month weekday

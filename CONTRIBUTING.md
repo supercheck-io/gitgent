@@ -21,8 +21,21 @@ npm test         # Run tests
 
 1. Run `npm run build` — must pass with no type errors.
 2. Run `npm test` — all tests must pass.
-3. Keep changes focused — avoid bundling unrelated refactors.
-4. Follow the existing code style (TypeScript ESM, strict typing).
+3. Run `npm run test:coverage` — check coverage for your changes.
+4. Keep changes focused — avoid bundling unrelated refactors.
+5. Follow the existing code style (TypeScript ESM, strict typing).
+
+## CI Pipeline
+
+Every PR and push to `main` runs these checks automatically:
+
+| Job | What it does |
+|-----|-------------|
+| **typecheck-and-test** | TypeScript type-check + Jest tests with coverage |
+| **lint-workflows** | Validates all GitHub Actions workflow YAML |
+| **label** | Auto-labels PRs based on changed files |
+
+All checks must pass before merging.
 
 ## Project Structure
 

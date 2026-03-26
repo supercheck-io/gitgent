@@ -89,13 +89,24 @@ export async function assertSafeHttpUrl(rawUrl: string): Promise<URL> {
   }
 
   const hostname = parsedUrl.hostname.toLowerCase();
-  if (BLOCKED_HOSTNAMES.has(hostname) || hostname.endsWith(".local")) {
-    throw new Error(`Blocked hostname: ${hostname}`);
+
+  // Strip IPv6 brackets for consistent matching (URL parser keeps them)
+  const bareHostname = hostname.startsWith("[") && hostname.endsWith("]")
+    ? hostname.slice(1, -1)
+    : hostname;
+
+  if (BLOCKED_HOSTNAMES.has(bareHostname) || bareHostname.endsWith(".local")) {
+    throw new Error(`Blocked hostname: ${bareHostname}`);
   }
 
-  const addresses = await resolveAddresses(hostname);
+  // Check if hostname is a raw IP address (including IPv6)
+  if (isIP(bareHostname) && isPrivateIp(bareHostname)) {
+    throw new Error(`Blocked private network target: ${bareHostname}`);
+  }
+
+  const addresses = await resolveAddresses(bareHostname);
   if (addresses.some((address) => isPrivateIp(address))) {
-    throw new Error(`Blocked private network target: ${hostname}`);
+    throw new Error(`Blocked private network target: ${bareHostname}`);
   }
 
   return parsedUrl;

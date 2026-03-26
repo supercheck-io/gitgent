@@ -19,6 +19,13 @@ const config = {
       },
     ],
   },
+  collectCoverageFrom: [
+    "src/**/*.ts",
+    "!src/main.ts",
+    "!src/github-entrypoint.ts",
+  ],
+  coverageDirectory: "coverage",
+  coverageReporters: ["text", "text-summary", "lcov"],
 };
 
 export default config;
